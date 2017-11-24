@@ -3,4 +3,4 @@
 The game is implemented using HTML5 and JavaScript. 
 
 
-[Demo](.Pong.html)
+[Demo](./Pong.html)
