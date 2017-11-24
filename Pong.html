@@ -32,6 +32,8 @@
                 this.y -= 7;
             if (keystate[DownArrow])
                 this.y += 7;
+            // keep the paddle inside of the canvas
+            this.y = Math.max(Math.min(this.y, HEIGHT - this.height), 0);
         },
         draw: function () {
             ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -45,7 +47,8 @@
 
         update: function () {
             var desty = ball.y - (this.height - ball.side) * 0.5;
-            this.y = (desty - this.y) * 0.1;
+            this.y += (desty - this.y) * 0.1;
+            this.y = Math.max(Math.min(this.y, HEIGHT - this.height), 0);
 
         },
         draw: function () {
@@ -105,18 +108,11 @@
             }
 
             if (0 > this.x + this.side || this.x > WIDTH) {
-                ball.x = (WIDTH - ball.side) / 2;
-                ball.y = (HEIGHT - ball.side) / 2;
+                var isplayer = pdle === player;
 
-                ball.vel = {
-                    x: (pdle === player ? 1 : -1) * ball.speed,
-                    y: 0
-                }
-//                var isplayer = pdle === player;
-//
-//                this.serve(isplayer ? 1 : -1);
-//                player.score += isplayer ? 0 : 1;
-//                ai.score += isplayer ? 1 : 0;
+                this.serve(isplayer ? 1 : -1);
+                player.score += isplayer ? 0 : 1;
+                ai.score += isplayer ? 1 : 0;
             }
         },
         draw: function () {
@@ -159,10 +155,7 @@
         ball.x = (WIDTH - ball.side) / 2;
         ball.y = (HEIGHT - ball.side) / 2;
 
-        ball.vel = {
-            x: ball.speed,
-            y: 0
-        }
+        ball.serve(1);
     }
 
     function update() {
