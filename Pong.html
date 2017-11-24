@@ -12,10 +12,92 @@
             left: 0;
             right: 0;
         }
+
+        svg:hover {
+            opacity: 1;
+            line: blue;
+        }
     </style>
 </head>
 <body>
 <script>
+    var NUMS = [
+            "1 101 111",
+            "0 001 001",
+            "1 011 110",
+            "1 011 011",
+            "0 111 001",
+            "1 110 011",
+            "1 110 111",
+            "1 001 001",
+            "1 111 111",
+            "1 111 011"
+        ],
+        POINTS = [
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+            [0, 1, 1, 1],
+            [1, 0, 1, 1],
+            [0, 1, 0, 2],
+            [0, 2, 1, 2],
+            [1, 1, 1, 2]
+        ];
+    // Convert the strings in NUMS to a boolean array
+    for (var i = 0; i < NUMS.length; i++) {
+        var n = NUMS[i].replace(/\s+/g, "");
+        NUMS[i] = (function () {
+            var l = [];
+            for (var j = 0; j < n.length; j++) {
+                l.push(n[j] === "1");
+            }
+            return l;
+        })();
+    }
+
+    function pad(str, padding, width) {
+        return (new Array(width || 2).join(padding || 0) + str).slice(-width)
+    }
+
+    function drawNumber(n, x, y, ralign) {
+        n = n.toString(); // convert to string => possible to loop thru all digits
+
+        var size = 32,
+            padding = 16;
+
+        ctx.save();
+        ctx.strokeStyle = "#fff";
+        ctx.lineCap = "square";
+        ctx.lineWidth = padding / 2;
+
+        if (ralign) { // if right aligned move x coord accordingly
+            x -= (n.length * (padding + size) - padding);
+        }
+        ctx.translate(x, y);
+
+        for (var i = 0; i < n.length; i++) {
+            var num = NUMS[parseInt(n[i])];
+
+            ctx.beginPath();
+            for (var j = 0; j < num.length; j++) {
+                if (num[j]) {
+                    var p = POINTS[j];
+                    ctx.moveTo(p[0] * size, p[1] * size);
+                    ctx.lineTo(p[2] * size, p[3] * size);
+                }
+            }
+            ctx.closePath();
+            ctx.stroke();
+            // fix anoying bug
+            var p2 = padding / 2,
+                p4 = padding / 4;
+            ctx.fillRect(size - p4, 2 * size - p4, p2, p2);
+
+            ctx.translate(size + padding, 0);
+        }
+        ctx.restore();
+    }
+
+
     var WIDTH = 700, HEIGHT = 600, pi = Math.PI;
     var UpArrow = 38, DownArrow = 40;
     var canvas, ctx, keystate;
@@ -24,6 +106,8 @@
     player = {
         x: null,
         y: null,
+
+        score: null,
         width: 20,
         height: 100,
 
@@ -42,6 +126,8 @@
     ai = {
         x: null,
         y: null,
+
+        score: null,
         width: 20,
         height: 100,
 
@@ -117,8 +203,27 @@
         },
         draw: function () {
             ctx.fillRect(this.x, this.y, this.side, this.side);
+
         }
     };
+
+    function requestFullscreen() {
+        console.log(canvas);
+        if (canvas.requestFullscreen) {
+            canvas.requestFullscreen();
+        } else if (canvas.msRequestFullscreen) {
+            canvas.msRequestFullscreen();
+        } else if (canvas.mozRequestFullScreen) {
+            canvas.mozRequestFullScreen();
+        } else if (canvas.webkitRequestFullscreen) {
+            canvas.webkitRequestFullscreen();
+        }
+        window.onresize = function () {
+            canvas.width = WIDTH = window.innerWidth;
+            canvas.height = HEIGHT = window.innerHeight;
+            init();
+        }
+    }
 
     function main() {
         canvas = document.createElement("canvas");
@@ -136,6 +241,25 @@
         });
 
         init();
+
+        function touchevt(evt) {
+            var el = evt.target,
+                oy = 0;
+
+            do {
+                oy += el.offsetTop;
+            } while (el = el.parentOffset)
+
+            player.y = evt.touches[0].clientY - oy - player.height / 2;
+        }
+
+        canvas.addEventListener("touchmove", touchevt);
+        canvas.addEventListener("touchstart", touchevt);
+
+        var d = document.createElement("div");
+        d.innerHTML = '<svg onclick="requestFullscreen()"width="20" height="16" opacity="0.5"><path d="M0 5v-5h5m10 0h5v5m0 6v5h-5m-10 0h-5v-5M6 6h8v4h-8z"style="fill:none;stroke:#000;stroke-width:4"></path></svg>';
+        document.body.appendChild(d);
+
         var loop = function () {
             update();
             draw();
@@ -148,12 +272,11 @@
     function init() {
         player.x = player.width;
         player.y = (HEIGHT - player.height) / 2;
+        player.score = 0;
 
         ai.x = WIDTH - (player.width + ai.width);
         ai.y = (HEIGHT - ai.height) / 2;
-
-        ball.x = (WIDTH - ball.side) / 2;
-        ball.y = (HEIGHT - ball.side) / 2;
+        ai.score = 0;
 
         ball.serve(1);
     }
@@ -181,6 +304,13 @@
             ctx.fillRect(x, y + step * 0.25, w, step * 0.5);
             y += step;
         }
+
+        // draw the scores
+        var w2 = WIDTH / 2;
+        drawNumber(pad(player.score), w2 - 20, 20, true);
+        drawNumber(pad(ai.score), w2 + 20, 20);
+
+
         ctx.restore();
     }
 
